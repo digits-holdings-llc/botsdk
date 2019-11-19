@@ -1,5 +1,5 @@
 {
-  "name": "botsdk",
+  "name": "greenbot-sdk",
   "version": "1.0.0",
   "description": "An Express Framework for automations",
   "main": "index.js",
