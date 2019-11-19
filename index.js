@@ -176,7 +176,7 @@ module.exports.init = (app, http) => {
   // We need to add our views directory
   var views = [] 
   views.push(app.get('views'))
-  views.push('node_modules/botSDK/views')
+  views.push('node_modules/greenbot-sdk/views')
   app.set('views', views)
   console.log("Views are now", app.get('views'))
 
