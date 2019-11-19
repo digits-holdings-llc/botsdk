@@ -172,6 +172,15 @@ module.exports.log = console.log
 module.exports.init = (app, http) => {
   console.log("Starting bot-sdk")
   checkConfig()
+
+  // We need to add our views directory
+  var views = [] 
+  views.push(app.get('views'))
+  views.push('node_modules/botSDK/views')
+  app.set('views', views)
+  console.log("Views are now", app.get('views'))
+
+  app.set(views)
   app.use(configMiddleware)
   app.post('/config', updateConfig)
   app.get('/config', getConfig)
