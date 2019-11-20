@@ -3,10 +3,10 @@ const { GraphQLClient } = require('graphql-request')
 const mongoURL = process.env.MONGO_URL || 'mongodb://localhost:27017/wfa'
 const parts = mongoURL.split("/")
 const DB_NAME = parts[parts.length - 1]
-const yaml = require('js-yaml');
-const fs   = require('fs');
+const yaml = require('js-yaml')
+const fs   = require('fs')
 const _ = require('lodash')
-
+const faker = require('faker')
 
 // On startup, check to see if there's a configuration in the database.
 // If there isn't, read the local YAML file (if any) and insert it
@@ -124,7 +124,6 @@ var notifyReq = async function(request, response) {
   }
 
 var configMiddleware = (req, res, next) => {
-  console.log("config middleware called")
   var config = fetchConfig()
   config.then((config) => {
     req.config = config
@@ -133,9 +132,7 @@ var configMiddleware = (req, res, next) => {
 }
 
 var trace = async (req, resp, next) => {
-  console.log("Looking for trace")
   if(req.config.trace.toUpperCase().trim() != "TRUE") {
-    console.log("Tracing disabled")
     return next()
   }
 
@@ -150,7 +147,6 @@ var trace = async (req, resp, next) => {
     let sessColl = db.collection('sessions')
     let teamColl = db.collection('teams')
     var inboundEvent = req.body
-    console.log("New event ", inboundEvent)
     if (inboundEvent.type == 'new_message') {
       msgColl.insertOne(inboundEvent.msg)
       custColl.update({_id: inboundEvent.customer._id}, inboundEvent.customer, {upsert: true})
@@ -170,7 +166,6 @@ module.exports.notify = notify
 module.exports.log = console.log
 
 module.exports.init = (app, http) => {
-  console.log("Starting bot-sdk")
   checkConfig()
 
   // We need to add our views directory
@@ -178,8 +173,6 @@ module.exports.init = (app, http) => {
   views.push(app.get('views'))
   views.push('node_modules/greenbot-sdk/views')
   app.set('views', views)
-  console.log("Views are now", app.get('views'))
-
   app.set(views)
   app.use(configMiddleware)
   app.post('/config', updateConfig)
