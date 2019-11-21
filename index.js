@@ -6,7 +6,8 @@ const DB_NAME = parts[parts.length - 1]
 const yaml = require('js-yaml')
 const fs   = require('fs')
 const _ = require('lodash')
-const faker = require('faker')
+
+console.log("Bot SDK starting with MONGO_URL " + mongoURL)
 
 // On startup, check to see if there's a configuration in the database.
 // If there isn't, read the local YAML file (if any) and insert it
@@ -20,7 +21,8 @@ async function checkConfig() {
       // read the yaml, convert to JSON
       // Stick it in the config database
       var doc = yaml.safeLoad(fs.readFileSync('./config.yaml', 'utf8'));
-      await configColl.insertOne(doc); 
+      await configColl.insertOne(doc);
+      console.log("Initialized with config ", config)
     } else {
       console.log("Starting with config ", config)
     }
@@ -53,16 +55,16 @@ async function notify(dst, txt) {
   try {
     const db = client.db(DB_NAME)
     let collection = db.collection('config')
-    let systemConfig = await collection.findOne()    
+    let systemConfig = await collection.findOne()
     const graphQLClient = new GraphQLClient(systemConfig.url, {
       headers: {
         "x-api-token": systemConfig.authorization,
         'Content-Type': 'application/json',
-        'Host': systemConfig.host,  
+        'Host': systemConfig.host,
         },
     })
-     
-    const query = 
+
+    const query =
       `
       mutation {
         addMessage(
@@ -128,11 +130,11 @@ var configMiddleware = (req, res, next) => {
   config.then((config) => {
     req.config = config
     next()
-  })  
+  })
 }
 
 var trace = async (req, resp, next) => {
-  if(req.config.trace.toUpperCase().trim() != "TRUE") {
+  if(req.config.trace && req.config.trace.toUpperCase().trim() != "TRUE") {
     return next()
   }
 
@@ -169,7 +171,7 @@ module.exports.init = (app, http) => {
   checkConfig()
 
   // We need to add our views directory
-  var views = [] 
+  var views = []
   views.push(app.get('views'))
   views.push('node_modules/greenbot-sdk/views')
   app.set('views', views)
@@ -181,7 +183,7 @@ module.exports.init = (app, http) => {
   app.use('/', trace)
   app.get('/log', function(request, response) {
     response.render("log")
-  })  
+  })
   var io = require('socket.io')(http);
   io.on('connection', function(socket){
     console.log('a user connected');
@@ -190,11 +192,11 @@ module.exports.init = (app, http) => {
     });
     socket.on('log message', function(msg){
       console.log('message: ' + msg);
-    });  
+    });
     module.exports.log = (msg) => {
       console.log("Emmiting this event : ", msg)
       socket.emit('log message', msg)
     }
   });
-  
+
 }
