@@ -93,18 +93,37 @@ async function notify(dst, txt) {
 }
 
 var updateConfig = async function(request, response) {
+  await saveConfigData(request.body)
+  response.redirect("/config")
+}
+
+var updateConfigJson = async function(request, response) {
+  var error = await saveConfigData(request.body)
+
+  if (error) {
+    response.sendStatus(500)
+  }
+  else {
+    response.sendStatus(200)
+  }
+}
+
+async function saveConfigData(json) {
   const client = await MongoClient.connect(mongoURL).catch(err => {console.log("Mongo Client Connect error", err)})
+  var hasError = false;
 
   try {
     const db = client.db(DB_NAME)
     let configColl = db.collection('config')
-    await configColl.updateMany({}, { $set: request.body} )
+    await configColl.updateMany({}, { $set: json} )
   } catch (err) {
+    hasError = true;
     console.log(err);
   } finally {
     client.close();
   }
-  response.redirect("/config")
+
+  return hasError
 }
 
 var getConfig = async function(request, response) {
@@ -118,6 +137,21 @@ var getConfig = async function(request, response) {
     config.labels[prop] = _.startCase(prop)
   }
   response.render('config', { title: 'Workforce Automation Demo', config })
+}
+
+var getConfigJson = async function(request, response) {
+  config = request.config
+  delete config._id
+
+  response.setHeader('Content-Type', 'application/json');
+  response.end(JSON.stringify(config))
+}
+
+var getMetaData = async function(request, response) {
+  var metaData = require('./package.json')
+
+  response.setHeader('Content-Type', 'application/json');
+  response.end(JSON.stringify(metaData))
 }
 
 var notifyReq = async function(request, response) {
@@ -179,7 +213,10 @@ module.exports.init = (app, http) => {
   app.use(configMiddleware)
   app.post('/config', updateConfig)
   app.get('/config', getConfig)
+  app.get('/config.json', getConfigJson)
+  app.get('/metadata.json', getMetaData)
   app.post('/notify', notifyReq)
+  app.post('/config.json', updateConfigJson)
   app.use('/', trace)
   app.get('/log', function(request, response) {
     response.render("log")
