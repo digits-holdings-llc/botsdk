@@ -6,6 +6,7 @@ const DB_NAME = parts[parts.length - 1]
 const yaml = require('js-yaml')
 const fs   = require('fs')
 const _ = require('lodash')
+const os = require('os')
 
 console.log("Bot SDK starting with MONGO_URL " + mongoURL)
 
@@ -235,5 +236,4 @@ module.exports.init = (app, http) => {
       socket.emit('log message', msg)
     }
   });
-
 }
