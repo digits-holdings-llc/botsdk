@@ -3,20 +3,16 @@ html
     meta(charset='utf-8')
     meta(name='viewport', content='width=device-width, initial-scale=1, shrink-to-fit=no')
     link(rel='stylesheet', href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css', integrity='sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm', crossorigin='anonymous')
-    title Configuration
+    title= title
   body
     .container
       .row
         .col
-          h1 Configuration
+          h1 Login
       .row
         .col-md-12
-          form(action="/config" method="POST")
-            each value, key in config   
-              unless  key=='labels'
-                .form-group
-                  label(for=key)=config.labels[key]
-                  input.form-control(type='text', name=key, value=value)
+          form(action="/login" method="POST")
+            input.form-control(type='password', name='password')
             button.btn.btn-primary(type='submit')
               | Submit
 

@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/howethomas/botsdk#readme",
   "dependencies": {
+    "cookie-session": "^1.3.3",
     "express": "^4.17.1",
     "fs": "0.0.1-security",
     "graphql-request": "^1.8.2",

@@ -7,6 +7,9 @@ const yaml = require('js-yaml')
 const fs   = require('fs')
 const _ = require('lodash')
 const os = require('os')
+const cookieSession = require('cookie-session')
+const reqPath = "/login"
+const logoutPath = "/logout"
 
 console.log("Bot SDK starting with MONGO_URL " + mongoURL)
 
@@ -202,8 +205,44 @@ var trace = async (req, resp, next) => {
 module.exports.notify = notify
 module.exports.log = console.log
 
+ 
+const checkPassword = function (req, res, next) {
+  if (req.config.password) {
+    if (!req.session.authorized) {
+      if (req.path != reqPath) {
+        res.redirect(reqPath)
+      }
+    }
+  }
+  next()
+}
+
+const loginPage = function (req, res, next) {
+  res.render('login')
+}
+ 
+const loginValidate = function (req, res, next) {
+  if (req.body.password == req.config.password) {
+    req.session.authorized = true
+    res.redirect("/")
+  } else {
+    res.redirect(reqPath)
+  }
+  next()
+}
+
+const logout = function (req, res, next) {
+  req.session = null
+  res.redirect(reqPath)
+}
+
 module.exports.init = (app, http) => {
   checkConfig()
+  app.set('trust proxy', 1) // trust first proxy
+  app.use(cookieSession({
+    name: 'session',
+    keys: ['key1', 'key2']
+  }))
 
   // We need to add our views directory
   var views = []
@@ -222,18 +261,9 @@ module.exports.init = (app, http) => {
   app.get('/log', function(request, response) {
     response.render("log")
   })
-  var io = require('socket.io')(http);
-  io.on('connection', function(socket){
-    console.log('a user connected');
-    socket.on('disconnect', function(){
-      console.log('user disconnected');
-    });
-    socket.on('log message', function(msg){
-      console.log('message: ' + msg);
-    });
-    module.exports.log = (msg) => {
-      console.log("Emmiting this event : ", msg)
-      socket.emit('log message', msg)
-    }
-  });
+  app.use(checkPassword)
+  app.get(reqPath, loginPage)
+  app.post(reqPath, loginValidate)
+  app.get(logoutPath, logout)
+
 }
