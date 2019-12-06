@@ -7,11 +7,17 @@ const yaml = require('js-yaml')
 const fs   = require('fs')
 const _ = require('lodash')
 const os = require('os')
+const axios = require('axios')
+const shortid = require('shortid')
 const cookieSession = require('cookie-session')
+const {spawn} = require('child_process')
 const reqPath = "/login"
 const logoutPath = "/logout"
 
 console.log("Bot SDK starting with MONGO_URL " + mongoURL)
+const instanceId = shortid.generate()
+console.log("Session starting with ID ", instanceId)
+const startedAt = Date().toString()
 
 // On startup, check to see if there's a configuration in the database.
 // If there isn't, read the local YAML file (if any) and insert it
@@ -25,16 +31,20 @@ async function checkConfig() {
       // read the yaml, convert to JSON
       // Stick it in the config database
       var doc = yaml.safeLoad(fs.readFileSync('./config.yaml', 'utf8'));
+
+      // If there isn't a unique_id in the config, add one
+      if (!doc.unique_id) {
+        doc.unique_id = shortid.generate()
+      }
       await configColl.insertOne(doc);
-      console.log("Initialized with config ", config)
-    } else {
-      console.log("Starting with config ", config)
+      config = doc
     }
   } catch (err) {
     console.log(err);
   } finally {
     client.close();
   }
+  return config
 }
 
 async function fetchConfig() {
@@ -205,7 +215,7 @@ var trace = async (req, resp, next) => {
 module.exports.notify = notify
 module.exports.log = console.log
 
- 
+
 const checkPassword = function (req, res, next) {
   if (req.config.password) {
     if (!req.session.authorized) {
@@ -220,7 +230,7 @@ const checkPassword = function (req, res, next) {
 const loginPage = function (req, res, next) {
   res.render('login')
 }
- 
+
 const loginValidate = function (req, res, next) {
   if (req.body.password == req.config.password) {
     req.session.authorized = true
@@ -236,8 +246,40 @@ const logout = function (req, res, next) {
   res.redirect(reqPath)
 }
 
+async function registerBot() {
+  config = await checkConfig()
+  // See if there's any configuration item called "server"
+  if (!config.server) {
+    // No one to register with. Go home
+    return
+  }
+  config.server.split(",").forEach((server) => {
+    serverUrl = server.trim()
+    var metaData = require('./package.json')
+    serverData = {
+      config,
+      metaData,
+      instanceId,
+      startedAt
+    }
+    axios.post(serverUrl, serverData )
+    .then((res) => {
+      console.log("Registered automation with ", serverUrl)
+    })
+    .catch((error) => {
+      console.log("Error registering with ", serverUrl)
+      console.error(error)
+    })
+  })
+}
+
 module.exports.init = (app, http) => {
-  checkConfig()
+  // On startup, check to see if we have a config
+  // document in config collection in the database. If we do not,
+  // read the local config.yaml and create one.
+  config = checkConfig()
+
+  // Need cookies for authentication
   app.set('trust proxy', 1) // trust first proxy
   app.use(cookieSession({
     name: 'session',
@@ -250,7 +292,12 @@ module.exports.init = (app, http) => {
   views.push('node_modules/greenbot-sdk/views')
   app.set('views', views)
   app.set(views)
+
+  // Register the handler that adds the configuration
+  // to the request object
   app.use(configMiddleware)
+
+  // Register SDK routes in the web server
   app.post('/config', updateConfig)
   app.get('/config', getConfig)
   app.get('/config.json', getConfigJson)
@@ -261,9 +308,25 @@ module.exports.init = (app, http) => {
   app.get('/log', function(request, response) {
     response.render("log")
   })
+
+  // Sets up the password middleware.
+  // if a password entry is found in the "config",
+  // check visitors at the door
   app.use(checkPassword)
   app.get(reqPath, loginPage)
   app.post(reqPath, loginValidate)
   app.get(logoutPath, logout)
 
+  // See if there are servers we have to register with
+  registerBot()
+  config.then((result) => {
+    // Finally, if there is a server_heartbeat parameter, setup a
+    // periodic timer to register the bot
+    if (result.server_heartbeat) {
+      var intervalSec = parseInt(result.server_heartbeat)
+      console.log("Periodically registering every ", intervalSec, " seconds.")
+      setInterval(registerBot, intervalSec * 1000)
+    }
+
+  })
 }
