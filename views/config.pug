@@ -10,7 +10,7 @@ html
         .col
           h1 Configuration
       .row
-        .col-md-12
+        .col-md-6
           form(action="/config" method="POST")
             each value, key in config   
               unless  key=='labels'
@@ -19,6 +19,22 @@ html
                   input.form-control(type='text', name=key, value=value)
             button.btn.btn-primary(type='submit')
               | Submit
+        .col-md-6
+          table.table
+            thead.thead-dark
+              tr
+                th Collection
+                th Count
+                th Size (MB)
+                th 
+            tbody
+              each value in collections
+                tr
+                  td=value.name
+                  td=value.count
+                  td=value.size
+                  td 
+                    a.btn.btn-danger(href='/config/clear/' + value.name) Clear
 
     // Optional JavaScript
     // jQuery first, then Popper.js, then Bootstrap JS
