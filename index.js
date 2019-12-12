@@ -140,6 +140,28 @@ async function saveConfigData(json) {
   return hasError
 }
 
+var clearCollection = async function(request, response) {
+  const client = await MongoClient.connect(mongoURL, { useNewUrlParser: true }).catch(err => {console.log("Mongo Client Connect error", err)})
+  if (!client) {
+    return;
+  }
+  try {
+    const db = client.db(DB_NAME)
+    var col = await db.collection(request.params.collection)
+
+    if (col) {
+      await col.deleteMany({})
+    }
+  } catch (err) {
+    console.log("Error caught in trace function")
+    console.log(err);
+  } finally {
+    client.close();
+  }
+
+  response.redirect("/config")
+}
+
 var getConfig = async function(request, response) {
   config = request.config
   delete config._id
@@ -150,7 +172,36 @@ var getConfig = async function(request, response) {
   for(const prop in config) {
     config.labels[prop] = _.startCase(prop)
   }
-  response.render('config', { title: 'Workforce Automation Demo', config })
+
+  var collections = await getAllMongoCollections()
+
+  response.render('config', { title: 'Workforce Automation Demo', config, collections: collections })
+}
+
+async function getAllMongoCollections() {
+  const client = await MongoClient.connect(mongoURL, { useNewUrlParser: true }).catch(err => {console.log("Mongo Client Connect error", err)})
+  if (!client) {
+    return;
+  }
+  try {
+    const db = client.db(DB_NAME)
+    var result = await db.listCollections().toArray()
+
+    for (var i = 0; i < result.length; i++) {
+      var name = result[i].name
+      var col = await db.collection(name)
+      result[i] = await col.stats() 
+      result[i].name = name
+      result[i].size = (result[i].size / 1024 / 1024).toFixed(3)
+    }
+
+    return result.sort(function(a,b) { return ((a.name > b.name) ? 1 : (a.name < b.name) ? -1 : 0) })
+  } catch (err) {
+    console.log("Error caught in trace function")
+    console.log(err);
+  } finally {
+    client.close();
+  }
 }
 
 var getConfigJson = async function(request, response) {
@@ -301,6 +352,7 @@ module.exports.init = (app, http) => {
   app.post('/config', updateConfig)
   app.get('/config', getConfig)
   app.get('/config.json', getConfigJson)
+  app.get('/config/clear/:collection', clearCollection)
   app.get('/metadata.json', getMetaData)
   app.post('/notify', notifyReq)
   app.post('/config.json', updateConfigJson)
