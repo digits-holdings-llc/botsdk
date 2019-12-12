@@ -29,12 +29,13 @@ html
                 th 
             tbody
               each value in collections
-                tr
-                  td=value.name
-                  td=value.count
-                  td=value.size
-                  td 
-                    a.btn.btn-danger(href='/config/clear/' + value.name) Clear
+                if value.name != "config"
+                  tr
+                    td=value.name
+                    td=value.count
+                    td=value.size
+                    td 
+                      a.btn.btn-danger(href='/config/clear/' + value.name) Clear
 
     // Optional JavaScript
     // jQuery first, then Popper.js, then Bootstrap JS
