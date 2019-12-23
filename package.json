@@ -1,6 +1,6 @@
 {
   "name": "greenbot-sdk",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "An Express Framework for automations",
   "main": "index.js",
   "scripts": {
