@@ -23,20 +23,21 @@ const startedAt = Date().toString();
 // If there isn't, read the local YAML file (if any) and insert it
 const client = new MongoClient(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
 module.exports.client = client;
+
 async function checkConfig() {
+  var config
   try {
-    await client.connect();
-    // .catch(err => {
-    //   console.log('Mongo Client Connect error', err);
-    // })
-    // .then(result => {
-    //   console.log('SDK Connected');
-    // });
+    await client.connect().catch(err => {
+      console.log('Mongo Client Connect error', err);
+    }).then(result => {
+      console.log('SDK Connected');
+    });
 
     const db = client.db(SUBDOMAIN);
     const configColl = db.collection('config');
-    let config = await configColl.findOne();
+    config = await configColl.findOne();
     console.log(config);
+
     if (!config) {
       // read the yaml, convert to JSON
       // Stick it in the config database
@@ -56,10 +57,11 @@ async function checkConfig() {
 }
 
 async function fetchConfig() {
+  var config
   try {
     const db = client.db(SUBDOMAIN);
     const configColl = db.collection('config');
-    const config = await configColl.findOne();
+    config = await configColl.findOne();
   } catch (err) {
     console.log(err);
   }
@@ -291,7 +293,7 @@ const logout = function(req, res, next) {
 };
 
 async function registerBot() {
-  config = await checkConfig();
+  let config = await checkConfig();
   // See if there's any configuration item called "server"
   if (!config.server) {
     // No one to register with. Go home
@@ -318,11 +320,11 @@ async function registerBot() {
   });
 }
 
-module.exports.init = (app, http) => {
+module.exports.init = async (app, http) => {
   // On startup, check to see if we have a config
   // document in config collection in the database. If we do not,
   // read the local config.yaml and create one.
-  config = checkConfig();
+  let config = checkConfig();
 
   // Need cookies for authentication
   app.set('trust proxy', 1); // trust first proxy
@@ -366,7 +368,7 @@ module.exports.init = (app, http) => {
   app.get(logoutPath, logout);
 
   // See if there are servers we have to register with
-  registerBot();
+  registerBot();  
   config.then(result => {
     // Finally, if there is a server_heartbeat parameter, setup a
     // periodic timer to register the bot
