@@ -22,21 +22,21 @@ const startedAt = Date().toString();
 // On startup, check to see if there's a configuration in the database.
 // If there isn't, read the local YAML file (if any) and insert it
 const client = new MongoClient(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
-
-client
-  .connect()
-  .catch(err => {
-    console.log('Mongo Client Connect error', err);
-  })
-  .then(result => {
-    console.log('SDK Connected');
-  });
-
+module.exports.client = client;
 async function checkConfig() {
   try {
+    await client.connect();
+    // .catch(err => {
+    //   console.log('Mongo Client Connect error', err);
+    // })
+    // .then(result => {
+    //   console.log('SDK Connected');
+    // });
+
     const db = client.db(SUBDOMAIN);
     const configColl = db.collection('config');
     let config = await configColl.findOne();
+    console.log(config);
     if (!config) {
       // read the yaml, convert to JSON
       // Stick it in the config database
