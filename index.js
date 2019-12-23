@@ -29,7 +29,7 @@ client
     console.log('Mongo Client Connect error', err);
   })
   .then(result => {
-    console.log('Connected');
+    console.log('SDK Connected');
   });
 
 async function checkConfig() {
