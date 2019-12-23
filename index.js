@@ -25,13 +25,16 @@ const client = new MongoClient(MONGO_URL, { useNewUrlParser: true, useUnifiedTop
 module.exports.client = client;
 
 async function checkConfig() {
-  var config
+  let config;
   try {
-    await client.connect().catch(err => {
-      console.log('Mongo Client Connect error', err);
-    }).then(result => {
-      console.log('SDK Connected');
-    });
+    await client
+      .connect()
+      .catch(err => {
+        console.log('Mongo Client Connect error', err);
+      })
+      .then(result => {
+        console.log('SDK Connected');
+      });
 
     const db = client.db(SUBDOMAIN);
     const configColl = db.collection('config');
@@ -57,7 +60,7 @@ async function checkConfig() {
 }
 
 async function fetchConfig() {
-  var config
+  let config;
   try {
     const db = client.db(SUBDOMAIN);
     const configColl = db.collection('config');
@@ -301,7 +304,7 @@ async function registerBot() {
   }
   config.server.split(',').forEach(server => {
     serverUrl = server.trim();
-    var metaData = require('./package.json');
+    const metaData = require('./package.json');
     serverData = {
       config,
       metaData,
@@ -368,7 +371,7 @@ module.exports.init = async (app, http) => {
   app.get(logoutPath, logout);
 
   // See if there are servers we have to register with
-  registerBot();  
+  registerBot();
   config.then(result => {
     // Finally, if there is a server_heartbeat parameter, setup a
     // periodic timer to register the bot
