@@ -109,7 +109,6 @@ async function notify(dst, txt) {
     console.log('Error caught in notify function');
     console.log(err);
   } finally {
-    client.close();
     console.log('Notify ends');
   }
 }
@@ -258,7 +257,6 @@ const trace = async (req, resp, next) => {
     console.log('Error caught in trace function');
     console.log(err);
   } finally {
-    client.close();
     console.log('Notify ends');
   }
 };
