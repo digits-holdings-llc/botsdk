@@ -113,12 +113,12 @@ async function notify(dst, txt) {
   }
 }
 
-const updateConfig = async function(request, response) {
+const updateConfig = async function (request, response) {
   await saveConfigData(request.body);
   response.redirect('/config');
 };
 
-const updateConfigJson = async function(request, response) {
+const updateConfigJson = async function (request, response) {
   const error = await saveConfigData(request.body);
 
   if (error) {
@@ -143,7 +143,7 @@ async function saveConfigData(json) {
   return hasError;
 }
 
-const clearCollection = async function(request, response) {
+const clearCollection = async function (request, response) {
   if (!client) {
     return;
   }
@@ -162,7 +162,7 @@ const clearCollection = async function(request, response) {
   response.redirect('/config');
 };
 
-const getConfig = async function(request, response) {
+const getConfig = async function (request, response) {
   config = request.config;
   delete config._id;
 
@@ -194,7 +194,7 @@ async function getAllMongoCollections() {
       result[i].size = (result[i].size / 1024 / 1024).toFixed(3);
     }
 
-    return result.sort(function(a, b) {
+    return result.sort(function (a, b) {
       return a.name > b.name ? 1 : a.name < b.name ? -1 : 0;
     });
   } catch (err) {
@@ -203,7 +203,7 @@ async function getAllMongoCollections() {
   }
 }
 
-const getConfigJson = async function(request, response) {
+const getConfigJson = async function (request, response) {
   config = request.config;
   delete config._id;
 
@@ -211,14 +211,14 @@ const getConfigJson = async function(request, response) {
   response.end(JSON.stringify(config));
 };
 
-const getMetaData = async function(request, response) {
+const getMetaData = async function (request, response) {
   const metaData = require('./package.json');
 
   response.setHeader('Content-Type', 'application/json');
   response.end(JSON.stringify(metaData));
 };
 
-const notifyReq = async function(request, response) {
+const notifyReq = async function (request, response) {
   notify(request.body.cell, request.body.text);
   response.redirect('/');
 };
@@ -263,7 +263,7 @@ const trace = async (req, resp, next) => {
 module.exports.notify = notify;
 module.exports.log = console.log;
 
-const checkPassword = function(req, res, next) {
+const checkPassword = function (req, res, next) {
   if (req.config.password) {
     if (!req.session.authorized) {
       if (req.path != reqPath) {
@@ -274,11 +274,11 @@ const checkPassword = function(req, res, next) {
   next();
 };
 
-const loginPage = function(req, res, next) {
+const loginPage = function (req, res, next) {
   res.render('login');
 };
 
-const loginValidate = function(req, res, next) {
+const loginValidate = function (req, res, next) {
   if (req.body.password == req.config.password) {
     req.session.authorized = true;
     res.redirect('/');
@@ -288,13 +288,12 @@ const loginValidate = function(req, res, next) {
   next();
 };
 
-const logout = function(req, res, next) {
+const logout = function (req, res, next) {
   req.session = null;
   res.redirect(reqPath);
 };
 
-async function registerBot() {
-  let config = await checkConfig();
+async function registerBot(config) {
   // See if there's any configuration item called "server"
   if (!config.server) {
     // No one to register with. Go home
@@ -356,7 +355,7 @@ module.exports.init = async (app, http) => {
   app.post('/notify', notifyReq);
   app.post('/config.json', updateConfigJson);
   app.use('/', trace);
-  app.get('/log', function(request, response) {
+  app.get('/log', function (request, response) {
     response.render('log');
   });
 
@@ -369,7 +368,7 @@ module.exports.init = async (app, http) => {
   app.get(logoutPath, logout);
 
   // See if there are servers we have to register with
-  registerBot();
+  registerBot(config);
   config.then(result => {
     // Finally, if there is a server_heartbeat parameter, setup a
     // periodic timer to register the bot
