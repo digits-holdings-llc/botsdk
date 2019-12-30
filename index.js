@@ -11,7 +11,7 @@ const axios = require('axios');
 const shortid = require('shortid');
 const cookieSession = require('cookie-session');
 const { spawn } = require('child_process');
-const reqPath = '/login';
+const loginPath = '/login';
 const logoutPath = '/logout';
 
 console.log('Bot SDK starting with MONGO_URL ' + MONGO_URL);
@@ -264,15 +264,18 @@ module.exports.notify = notify;
 module.exports.log = console.log;
 
 const checkPassword = function (req, res, next) {
-  if (req.config.password) {
-    if (!req.session.authorized) {
-      if (req.path != reqPath) {
-        console.log('login...');
-        res.redirect(reqPath);
-      }
-    }
+  console.log('req.method', req.method);
+  if (req.method === 'GET' &&
+    req.config.password &&
+    !req.session.authorized &&
+    req.path != loginPath
+  ) {
+    console.log('login...');
+    res.redirect(loginPath);
   }
-  next();
+  else {
+    next();
+  }
 };
 
 const loginPage = function (req, res, next) {
@@ -284,14 +287,14 @@ const loginValidate = function (req, res, next) {
     req.session.authorized = true;
     res.redirect('/');
   } else {
-    res.redirect(reqPath);
+    res.redirect(loginPath);
   }
   next();
 };
 
 const logout = function (req, res, next) {
   req.session = null;
-  res.redirect(reqPath);
+  res.redirect(loginPath);
 };
 
 async function registerBot(config) {
@@ -347,6 +350,14 @@ module.exports.init = async (app, http) => {
   // to the request object
   app.use(configMiddleware);
 
+  // Sets up the password middleware.
+  // if a password entry is found in the "config",
+  // check visitors at the door
+  app.use(checkPassword);
+  app.get(loginPath, loginPage);
+  app.post(loginPath, loginValidate);
+  app.get(logoutPath, logout);
+
   // Register SDK routes in the web server
   app.post('/config', updateConfig);
   app.get('/config', getConfig);
@@ -359,14 +370,6 @@ module.exports.init = async (app, http) => {
   app.get('/log', function (request, response) {
     response.render('log');
   });
-
-  // Sets up the password middleware.
-  // if a password entry is found in the "config",
-  // check visitors at the door
-  app.get(checkPassword);
-  app.get(reqPath, loginPage);
-  app.post(reqPath, loginValidate);
-  app.get(logoutPath, logout);
 
   // See if there are servers we have to register with
   registerBot(config);
